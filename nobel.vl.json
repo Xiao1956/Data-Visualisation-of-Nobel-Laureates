@@ -1,0 +1,275 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "data": {
+    "url": "https://raw.githubusercontent.com/LuciaBest/IV-Test/main/nobel_winners.csv",
+    "format": {"type": "csv"}
+  },
+  "params": [{"name": "interpolate", "value": "monotone"}],
+  "title": {
+    "text": "Exploring the Demographics and Characteristics of Nobel Winners",
+    "anchor": "middle",
+    "fontWeight": "bold",
+    "fontSize": 24,
+    "offset": 40,
+    "subtitle": "*DATA SOURCE: https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-05-14 ",
+    "subtitleFontSize": 10,
+    "subtitlePadding": 10,
+    "subtitleColor": "dimgrey"
+  },
+  "config": {
+    "axisY": {"minExtent": 0},
+    "axis": {
+      "titleFontWeight": "bold",
+      "titleFontSize": 14,
+      "gridColor": "#EFEFEF"
+    }
+  },
+  "vconcat": [
+    {
+      "hconcat": [
+        {
+          "layer": [
+            {
+              "mark": {
+                "type": "geoshape",
+                "fill": "#ddd",
+                "stroke": "#fff",
+                "strokeWidth": 1
+              },
+              "data": {
+                "url": "https://raw.githubusercontent.com/deldersveld/topojson/master/world-countries-sans-antarctica.json",
+                "format": {"type": "topojson", "feature": "countries1"}
+              }
+            },
+            {
+              "mark": {"type": "circle"},
+              "encoding": {
+                "longitude": {"field": "longitude", "type": "quantitative"},
+                "latitude": {"field": "latitude", "type": "quantitative"},
+                "size": {"value": 15},
+                "color": {
+                  "field": "gender",
+                  "scale": {"range": ["#ff7f0e", "#3182bd"]}
+                },
+                "opacity": {
+                  "condition": {"param": "legend_click", "value": 0.7},
+                  "value": 0
+                },
+                "tooltip": [
+                  {"field": "full_name", "type": "nominal", "title": "Winner"},
+                  {"field": "prize", "type": "nominal", "title": "Prize"},
+                  {
+                    "field": "birth_country",
+                    "type": "nominal",
+                    "title": "Birth Place"
+                  }
+                ]
+              },
+              "params": [
+                {
+                  "name": "legend_click",
+                  "select": {
+                    "fields": ["gender"],
+                    "type": "point",
+                    "toggle": "event.shiftKey"
+                  },
+                  "bind": "legend"
+                }
+              ],
+              "transform": [
+                {"filter": {"not": {"field": "gender", "equal": "NA"}}},
+                {"filter": {"param": "bar_chart_click"}},
+                {"filter": {"param": "scatter_plot_brush"}},
+                {"filter": {"param": "histogram_brush"}}
+              ]
+            }
+          ],
+          "projection": {"type": "equirectangular"},
+          "width": 550,
+          "height": 250
+        },
+        {
+          "width": 250,
+          "height": 200,
+          "mark": {"type": "bar", "size": 20},
+          "encoding": {
+            "x": {
+              "title": "Number of Winners",
+              "aggregate": "count",
+              "field": "laureate_id",
+              "type": "quantitative"
+            },
+            "y": {
+              "title": "Category",
+              "field": "category",
+              "type": "nominal",
+              "sort": "-x"
+            },
+            "color": {"field": "gender"},
+            "opacity": {"condition": {"param": "histogram_brush"}, "value": 0.2}
+          },
+          "params": [
+            {
+              "name": "histogram_brush",
+              "select": {
+                "type": "point",
+                "toggle": "event.shiftKey",
+                "encodings": ["y"]
+              }
+            }
+          ],
+          "transform": [
+            {"filter": {"not": {"field": "gender", "equal": "NA"}}},
+            {"filter": {"param": "legend_click"}},
+            {"filter": {"param": "bar_chart_click"}},
+            {"filter": {"param": "scatter_plot_brush"}}
+          ]
+        }
+      ]
+    },
+    {
+      "hconcat": [
+        {
+          "layer": [
+            {
+              "mark": {"type": "circle", "opacity": 0.8},
+              "encoding": {
+                "x": {
+                  "title": "Year",
+                  "field": "prize_year",
+                  "timeUnit": "year",
+                  "type": "temporal",
+                  "axis": {"tickCount": {"interval": "year", "step": 10}},
+                  "scale": {"domain": [{"year": 1900}, {"year": 2016}]}
+                },
+                "y": {
+                  "title": "Age",
+                  "field": "prize_age",
+                  "type": "quantitative"
+                },
+                "color": {"field": "gender"},
+                "opacity": {
+                  "condition": {"param": "scatter_plot_brush"},
+                  "value": 0.2
+                },
+                "tooltip": [
+                  {"field": "full_name", "type": "nominal", "title": "Winner"},
+                  {"field": "prize", "type": "nominal", "title": "Prize"},
+                  {
+                    "field": "prize_age",
+                    "type": "quantitative",
+                    "title": "Prize age"
+                  }
+                ]
+              },
+              "params": [
+                {
+                  "name": "scatter_plot_brush",
+                  "select": {"type": "interval", "encodings": ["x"]}
+                }
+              ],
+              "transform": [
+                {"filter": {"not": {"field": "prize_age", "equal": "NA"}}},
+                {"filter": {"param": "bar_chart_click"}},
+                {"filter": {"param": "legend_click"}},
+                {"filter": {"param": "histogram_brush"}}
+              ]
+            },
+            {
+              "width": 550,
+              "height": 150,
+              "mark": {
+                "type": "line",
+                "interpolate": {"expr": "interpolate"},
+                "color": "firebrick"
+              },
+              "transform": [
+                {"filter": {"not": {"field": "prize_age", "equal": "NA"}}},
+                {
+                  "joinaggregate": [
+                    {"op": "mean", "field": "prize_age", "as": "mean_age"}
+                  ],
+                  "groupby": ["prize_year"]
+                },
+                {"filter": {"param": "bar_chart_click"}},
+                {"filter": {"param": "scatter_plot_brush"}},
+                {"filter": {"param": "legend_click"}},
+                {"filter": {"param": "histogram_brush"}}
+              ],
+              "encoding": {
+                "x": {
+                  "title": "Year",
+                  "field": "prize_year",
+                  "timeUnit": "year",
+                  "type": "temporal",
+                  "axis": {"tickCount": {"interval": "year", "step": 10}},
+                  "scale": {"domain": [{"year": 1899}, {"year": 2017}]}
+                },
+                "y": {
+                  "title": "Average Age",
+                  "field": "mean_age",
+                  "type": "quantitative"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "repeat": {"column": ["prize_age"]},
+          "spec": {
+            "height": 150,
+            "width": 280,
+            "layer": [
+              {
+                "params": [
+                  {
+                    "name": "bar_chart_click",
+                    "select": {"type": "interval", "encodings": ["x"]}
+                  }
+                ],
+                "mark": "bar",
+                "encoding": {
+                  "y": {
+                    "title": "Number of Winners",
+                    "aggregate": "count",
+                    "field": "laureate_id",
+                    "type": "quantitative"
+                  },
+                  "x": {
+                    "title": "Age of Winners",
+                    "field": {"repeat": "column"},
+                    "bin": {"step": 5}
+                  },
+                  "color": {"field": "gender"},
+                  "opacity": {
+                    "condition": {"param": "bar_chart_click"},
+                    "value": 0.1
+                  }
+                },
+                "transform": [
+                  {"filter": {"param": "scatter_plot_brush"}},
+                  {"filter": {"param": "legend_click"}},
+                  {"filter": {"param": "histogram_brush"}}
+                ]
+              },
+              {
+                "mark": "bar",
+                "encoding": {
+                  "x": {"field": {"repeat": "column"}, "bin": {"step": 5}},
+                  "y": {"aggregate": "count"},
+                  "color": {"field": "gender"}
+                },
+                "transform": [
+                  {"filter": {"param": "bar_chart_click"}},
+                  {"filter": {"param": "scatter_plot_brush"}},
+                  {"filter": {"param": "legend_click"}},
+                  {"filter": {"param": "histogram_brush"}}
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
